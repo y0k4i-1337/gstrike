@@ -128,3 +128,11 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+
+# files generated on execution
+valid_creds.txt
+incomplete_reqs.txt
+older_passwords.txt
+testresult.png
+screenshots
