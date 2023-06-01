@@ -1,6 +1,6 @@
 {
   "name": "gstrike",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Google Workspace password sprayer with anti-captcha ",
   "main": "gstrike.js",
   "repository": "git@github.com:y0k4i-1337/gstrike.git",

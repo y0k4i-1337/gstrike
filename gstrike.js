@@ -16,7 +16,7 @@ commander
     "A password spraying tool designed specifically for performing " +
       "\ntargeted password attacks against Google Workspace accounts"
   )
-  .version("0.1.0")
+  .version("0.1.1")
   .option("-u, --usernames <file>", "Path to the usernames file")
   .option("-p, --passwords <file>", "Path to the passwords file")
   .option(
@@ -389,7 +389,7 @@ async function solveRecaptchaManually(page) {
             // If anti-captcha service was used, report correct solution
             if (statsSvc.used) {
               await client2captcha
-                .report(statsSvc.id)
+                .report(statsSvc.id, false)
                 .then(function (response) {
                   console.debug(
                     `Captcha solution with id ${statsSvc.id} was reported as`,
