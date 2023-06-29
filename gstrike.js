@@ -127,6 +127,7 @@ async function checkMFA(page) {
     page.url().includes("/challenge/ootp?") ||
     page.url().includes("/challenge/bc?") ||
     page.url().includes("/challenge/ipp?") ||
+    page.url().includes("/challenge/sk/webauthn?") ||
     page.url().includes("/challenge/selection?")
   ) {
     return true;
