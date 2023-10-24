@@ -411,11 +411,20 @@ async function querySelectorIncludesText(selector, regex) {
                         }
                     }
 
+                    try {
+                        await page.waitForNavigation();
+                    } catch {}
+
                     // Check if username is wrong
                     try {
-                        const result = await page.evaluate(() =>{
-                            const elements = Array.from(document.querySelectorAll('span')).find((el) =>
-                                el.textContent.match(/Couldn.t find your Google Account/));
+                        const result = await page.evaluate(() => {
+                            const elements = Array.from(
+                                document.querySelectorAll("span")
+                            ).find((el) =>
+                                el.textContent.match(
+                                    /Couldn.t find your Google Account/
+                                )
+                            );
                             console.log(elements);
 
                             if (elements) {
@@ -430,20 +439,81 @@ async function querySelectorIncludesText(selector, regex) {
                             return false;
                         });
                         if (result) {
-                            console.debug("Couldn't find account! Removing from list...");
+                            console.debug(
+                                "Couldn't find account! Removing from list..."
+                            );
                             // Remove username from array
                             await removeFromArray(usernames, username);
                             break tryuserlabel;
                         }
                     } catch (error) {
                         console.error(
-                            chalk.red("Error when checking for account: ", error)
+                            chalk.red(
+                                "Error when checking for account: ",
+                                error
+                            )
                         );
                     }
 
                     try {
                         await page.waitForNavigation();
                     } catch {}
+
+                    // If anti-captcha service was used, check if solution was correct
+                    // Message on error: Please re-enter the characters you see in the image above
+                    if (statsSvc.used) {
+                        try {
+                            const result = await page.evaluate(() => {
+                                const elements = Array.from(
+                                    document.querySelectorAll("div")
+                                ).find((el) =>
+                                    el.textContent.match(
+                                        /Please re-enter the characters you see in the image above/
+                                    )
+                                );
+                                console.log(elements);
+
+                                if (elements) {
+                                    const computedStyle =
+                                        getComputedStyle(elements);
+                                    return (
+                                        computedStyle.display !== "none" &&
+                                        computedStyle.visibility !== "hidden"
+                                    );
+                                }
+
+                                return false;
+                            });
+                            if (result) {
+                                console.debug(
+                                    "Captcha solution was incorrect!"
+                                );
+                                await client2captcha
+                                    .report(statsSvc.id)
+                                    .then(function (response) {
+                                        if (response) {
+                                            console.log(
+                                                `Captcha solution with id ${statsSvc.id} was reported as`,
+                                                chalk.red("incorrect")
+                                            );
+                                        } else {
+                                            console.log(
+                                                `Error while reporting captcha solution with id ${statsSvc.id} as`,
+                                                chalk.red("incorrect")
+                                            );
+                                        }
+                                    });
+                                break tryuserlabel;
+                            }
+                        } catch (error) {
+                            console.error(
+                                chalk.red(
+                                    "Error when checking for captcha solution: ",
+                                    error
+                                )
+                            );
+                        }
+                    }
 
                     // Search and type into password box
                     try {
