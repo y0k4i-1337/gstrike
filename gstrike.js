@@ -101,13 +101,6 @@ if (options.apiKey) {
 //   process.exit(1);
 // }
 
-async function waitForDelayAndSelector(page, delay, selector) {
-    if (delay) {
-        await page.waitForTimeout(delay);
-    }
-    return await page.waitForSelector(selector);
-}
-
 async function isRecaptchaActivated(page) {
     const recaptchaSelector = "#captchaimg";
     const recaptchaElement = await page.$(recaptchaSelector);
@@ -242,7 +235,7 @@ async function querySelectorIncludesText(selector, regex) {
             const page = await browser.newPage();
             await page.setDefaultTimeout(15000);
             await page.goto("https://bot.sannysoft.com");
-            await page.waitForTimeout(5000);
+            await page.waitForNetworkIdle();
             await page.screenshot({ path: "testresult.png", fullPage: true });
             await browser.close();
             console.log(`All done, check the screenshot. ✨`);
@@ -289,9 +282,7 @@ async function querySelectorIncludesText(selector, regex) {
 
                     // Wait for the page to load
                     // this will throw if selector is not found
-                    const emailSelector = await waitForDelayAndSelector(
-                        page,
-                        options.waitTime,
+                    const emailSelector = await page.waitForSelector(
                         'input[type="email"]'
                     );
 
@@ -301,7 +292,7 @@ async function querySelectorIncludesText(selector, regex) {
                     });
                     await page.keyboard.press("Enter");
 
-                    await page.waitForTimeout(1000);
+                    await page.waitForNetworkIdle();
 
                     // Check if reCAPTCHA is present
                     // First, try captcha image
@@ -517,9 +508,7 @@ async function querySelectorIncludesText(selector, regex) {
 
                     // Search and type into password box
                     try {
-                        const passwordSelector = await waitForDelayAndSelector(
-                            page,
-                            options.waitTime,
+                        const passwordSelector = await page.waitForSelector(
                             'input[type="password"]'
                         );
                         // If anti-captcha service was used, report correct solution
@@ -563,7 +552,6 @@ async function querySelectorIncludesText(selector, regex) {
                     try {
                         await page.waitForNavigation();
                     } catch {}
-                    //   await page.waitForTimeout(2000);
 
                     // Check if password is wrong
                     // Find an element by its content using page.evaluate()
