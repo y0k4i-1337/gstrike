@@ -8,11 +8,11 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@infosimples/node_two_captcha": "^1.2.0",
-    "@slack/webhook": "^6.1.0",
+    "@slack/webhook": "^7.0.5",
     "chalk": "~4.1.2",
     "commander": "^10.0.1",
     "log-timestamp": "^0.3.0",
-    "puppeteer": "^22.7.1",
+    "puppeteer": "^24.2.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-minmax": "^1.1.2",
     "puppeteer-extra-plugin-recaptcha": "^3.6.8",
