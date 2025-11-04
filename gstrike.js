@@ -64,6 +64,11 @@ commander
         "-d, --directory <dir>",
         "Directory to save screenshots when using -S",
         "screenshots"
+)
+    .option(
+        "-v, --verbose",
+        "Enable verbose logging for debugging purposes",
+        false
     )
     .parse();
 
@@ -265,6 +270,48 @@ async function querySelectorIncludesText(selector, regex) {
                 }
 
                 const page = await browser.newPage();
+
+                // Setup intercepts to block unnecessary resources
+                await page.setRequestInterception(true);
+                const blockedURLs = [
+                    "googlesyndication.com",
+                    "adservice.google.com",
+                    "doubleclick.net",
+                    "pagead2.googlesyndication.com",
+                    "play.google.com",
+                ];
+                page.on("request", (req) => {
+                    const resourceType = req.resourceType();
+                    const url = req.url();
+                    // Block URL if it matches any of the blocked URLs
+                    if (
+                        blockedURLs.some((blockedURL) =>
+                            url.includes(blockedURL)
+                        )
+                    ) {
+                        if (options.verbose) {
+                            console.debug("Blocking request to:", url);
+                        }
+                        req.abort();
+                    } else if (
+                        resourceType === "image" ||
+                        resourceType === "stylesheet" ||
+                        resourceType === "font" ||
+                        resourceType === "media"
+                    ) {
+                        // Block images, stylesheets, fonts, and media to speed up loading
+                        if (options.verbose) {
+                            console.debug(
+                                `Blocking ${resourceType} request to:`,
+                                url
+                            );
+                        }
+                        req.abort();
+                    } else {
+                        req.continue();
+                    }
+                });
+
                 tryuserlabel: try {
                     // Initialize object to control usage of anti-captcha service
                     const statsSvc = {
@@ -282,6 +329,9 @@ async function querySelectorIncludesText(selector, regex) {
 
                     // Wait for the page to load
                     // this will throw if selector is not found
+                    if (options.verbose) {
+                        console.debug("Waiting for email input selector...");
+                    }
                     const emailSelector = await page.waitForSelector(
                         'input[type="email"]'
                     );
@@ -292,19 +342,32 @@ async function querySelectorIncludesText(selector, regex) {
                     });
                     await page.keyboard.press("Enter");
 
-                    await page.waitForNetworkIdle();
+                    if (options.verbose) {
+                        console.debug("Waiting for network idle...");
+                    }
+                    await page.waitForNetworkIdle({ concurrency: 0, idleTime: 500 });
+                    if (options.verbose) {
+                        console.debug("Network is idle. Proceeding...");
+                    }
 
                     // Check if reCAPTCHA is present
                     // First, try captcha image
                     let foundCaptcha = false;
                     try {
+                        if (options.verbose) {
+                            console.debug("Checking for captchaimg element...");
+                        }
                         const captchaimgSelector = await page.waitForSelector(
                             "#captchaimg",
                             {
                                 visible: true,
+                                timeout: 1000,
                             }
                         );
                         if (captchaimgSelector) {
+                            if (options.verbose) {
+                                console.debug("Found captchaimg element!");
+                            }
                             const valueHandle =
                                 await captchaimgSelector.getProperty("src");
                             const rawValue = await decodeEntities(
@@ -318,7 +381,8 @@ async function querySelectorIncludesText(selector, regex) {
                                 try {
                                     const captchaRespSelector =
                                         await page.waitForSelector(
-                                            'input[aria-label="Type the text you hear or see"]'
+                                            'input[aria-label="Type the text you hear or see"]',
+                                            { timeout: 3000}
                                         );
 
                                     await client2captcha
@@ -358,12 +422,28 @@ async function querySelectorIncludesText(selector, regex) {
                             }
                             foundCaptcha = true;
                         }
-                    } catch {
+                    } catch (error) {
                         // In case of error because captchaimg not found, do nothing!
+                        if (options.verbose) {
+                            if (error.name === "TimeoutError") {
+                                console.debug(
+                                    "captchaimg element not found, continuing..."
+                                );
+                            } else {
+                                console.error(
+                                    chalk.red(
+                                        `Error while checking for captchaimg: ${error}`
+                                    )
+                                );
+                            }
+                        }
                     }
 
                     // Try to find other types of captchas
                     if (!foundCaptcha) {
+                        if (options.verbose) {
+                            console.debug("Checking for other types of captchas...");
+                        }
                         let { captchas, filtered, error } =
                             await page.findRecaptchas();
                         if (error) {
@@ -399,15 +479,27 @@ async function querySelectorIncludesText(selector, regex) {
                                 await solveRecaptchaManually(page);
                             }
                             foundCaptcha = true;
+                        } else {
+                            if (options.verbose) {
+                                console.debug("No captchas found on the page.");
+                            }
                         }
                     }
 
                     try {
-                        await page.waitForNavigation();
+                        if (options.verbose) {
+                            console.debug("Waiting for navigation...");
+                        }
+                        await page.waitForNavigation({
+                            timeout: 500,
+                        });
                     } catch {}
 
                     // Check if username is wrong
                     try {
+                        if (options.verbose) {
+                            console.debug("Checking if username is valid...");
+                        }
                         const result = await page.evaluate(() => {
                             const elements = Array.from(
                                 document.querySelectorAll("span")
@@ -447,7 +539,12 @@ async function querySelectorIncludesText(selector, regex) {
                     }
 
                     try {
-                        await page.waitForNavigation();
+                        if (options.verbose) {
+                            console.debug("Waiting for navigation...");
+                        }
+                        await page.waitForNavigation(
+                            { timeout: 500 }
+                        );
                     } catch {}
 
                     // If anti-captcha service was used, check if solution was correct
@@ -508,8 +605,12 @@ async function querySelectorIncludesText(selector, regex) {
 
                     // Search and type into password box
                     try {
+                        if (options.verbose) {
+                            console.debug("Waiting for password input selector...");
+                        }
                         const passwordSelector = await page.waitForSelector(
-                            'input[type="password"]'
+                            'input[type="password"]',
+                            { timeout: 3000 }
                         );
                         // If anti-captcha service was used, report correct solution
                         if (statsSvc.used) {
@@ -550,7 +651,7 @@ async function querySelectorIncludesText(selector, regex) {
                     }
 
                     try {
-                        await page.waitForNavigation();
+                        await page.waitForNavigation({ timeout: 2000 });
                     } catch {}
 
                     // Check if password is wrong
@@ -635,6 +736,9 @@ async function querySelectorIncludesText(selector, regex) {
                                       `success_${encodedCred}.png`
                                   );
                             try {
+                                // Wait a bit for the page to load properly
+                                // await sleep(1000);
+                                await page.waitForNetworkIdle({ concurrency: 0, idleTime: 500 });
                                 await page.screenshot({
                                     path: scr_path,
                                     fullPage: true,
