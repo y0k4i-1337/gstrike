@@ -128,12 +128,11 @@ If you need to discover valid accounts in a domain, you can try my other tool: [
 
 This project is under license from Apache. For more details, see the [LICENSE](LICENSE) file.
 
-
-Made with :heart: by <a href="https://github.com/y0k4i-1337" target="_blank">y0k4i</a>
-
 ## :coffee: Support ##
 <p><a href="https://www.buymeacoffee.com/y0k4i"> <img align="left" src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" height="50" width="210" alt="y0k4i" /></a></p><br><br>
 
+
+Made with :heart: by <a href="https://github.com/y0k4i-1337" target="_blank">y0k4i</a>
 
 &#xa0;
 
